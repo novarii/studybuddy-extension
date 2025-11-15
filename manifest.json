@@ -1,17 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "Panopto Video Downloader",
+  "name": "Study Buddy",
   "version": "1.0.0",
-  "description": "Download Panopto videos to your backend storage",
+  "description": "Send Panopto videos to Study Buddy",
   "permissions": [
     "storage",
     "activeTab",
+    "tabs",
     "scripting",
     "notifications"
   ],
   "host_permissions": [
     "https://*.panopto.com/*",
-    "https://*.panopto.eu/*"
+    "https://*.panopto.eu/*",
+    "http://localhost:8000/*"
   ],
   "content_scripts": [
     {
@@ -38,7 +40,7 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_title": "Panopto Video Downloader"
+    "default_title": "Study Buddy"
   },
   "options_page": "options.html",
   "icons": {

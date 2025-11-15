@@ -1,8 +1,10 @@
 // Background service worker
-chrome.runtime.onInstalled.addListener((details) => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') {
-    // Open options page on first install
-    chrome.runtime.openOptionsPage();
+    // Set default backend URL
+    await chrome.storage.sync.set({
+      backendUrl: 'http://localhost:8000'
+    });
   }
 });
 
@@ -13,7 +15,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     chrome.notifications.create({
       type: 'basic',
       iconUrl: 'icons/icon48.png',
-      title: 'Panopto Downloader',
+      title: 'Study Buddy',
       message: request.message
     });
   }

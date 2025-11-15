@@ -1,49 +1,74 @@
 // Popup script
 document.addEventListener('DOMContentLoaded', async () => {
   const statusDiv = document.getElementById('status');
-  const configStatus = document.getElementById('config-status');
-  const checkBtn = document.getElementById('check-backend');
-  const optionsBtn = document.getElementById('open-options');
+  const pageInfoDiv = document.getElementById('page-info');
+  const sendButton = document.getElementById('send-button');
 
-  // Load and display config status
-  const config = await chrome.storage.sync.get(['backendUrl', 'apiKey']);
-  if (config.backendUrl) {
-    configStatus.textContent = `Backend: ${config.backendUrl}`;
-    configStatus.style.color = '#28a745';
-  } else {
-    configStatus.textContent = 'Backend not configured';
-    configStatus.style.color = '#dc3545';
+  // Get current tab
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  
+  // Check if we're on a Panopto page
+  const isPanoptoPage = tab.url && (
+    tab.url.includes('panopto.com') || 
+    tab.url.includes('panopto.eu')
+  );
+
+  const isViewerPage = tab.url && (
+    tab.url.includes('/Viewer.aspx') ||
+    tab.url.includes('/Embed.aspx')
+  );
+
+  if (!isPanoptoPage) {
+    pageInfoDiv.textContent = 'Not on a Panopto page';
+    pageInfoDiv.classList.add('error');
+    sendButton.disabled = true;
+    return;
   }
 
-  // Check backend connection
-  checkBtn.addEventListener('click', async () => {
-    const config = await chrome.storage.sync.get(['backendUrl', 'apiKey']);
-    
-    if (!config.backendUrl) {
-      showStatus('Please configure backend URL in settings', 'error');
-      return;
-    }
+  if (!isViewerPage) {
+    pageInfoDiv.textContent = 'Please navigate to a Panopto video page';
+    pageInfoDiv.classList.add('error');
+    sendButton.disabled = true;
+    return;
+  }
+
+  // Extract video info from URL
+  const url = new URL(tab.url);
+  const videoId = url.searchParams.get('id') || url.searchParams.get('tid');
+  
+  if (videoId) {
+    pageInfoDiv.textContent = `Video ID: ${videoId}`;
+  } else {
+    pageInfoDiv.textContent = 'Could not detect video ID';
+    pageInfoDiv.classList.add('error');
+    sendButton.disabled = true;
+    return;
+  }
+
+  // Handle send button click
+  sendButton.addEventListener('click', async () => {
+    sendButton.disabled = true;
+    showStatus('Getting video link...', 'info');
 
     try {
-      const response = await fetch(`${config.backendUrl}/api/health`, {
-        method: 'GET',
-        headers: config.apiKey ? { 'Authorization': `Bearer ${config.apiKey}` } : {}
+      // Send message to content script
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'downloadVideo'
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        showStatus('Backend is online! ✓', 'success');
+      if (response.success) {
+        showStatus(response.message || 'Video sent to Study Buddy! ✓', 'success');
       } else {
-        showStatus(`Backend error: ${response.status}`, 'error');
+        showStatus('Error: ' + (response.error || 'Unknown error'), 'error');
       }
     } catch (error) {
-      showStatus(`Connection failed: ${error.message}`, 'error');
+      console.error('Error:', error);
+      showStatus('Error: ' + error.message, 'error');
+    } finally {
+      setTimeout(() => {
+        sendButton.disabled = false;
+      }, 2000);
     }
-  });
-
-  // Open options page
-  optionsBtn.addEventListener('click', () => {
-    chrome.runtime.openOptionsPage();
   });
 
   function showStatus(message, type) {
@@ -55,4 +80,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 5000);
   }
 });
-
