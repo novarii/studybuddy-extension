@@ -1,71 +1,195 @@
-# Panopto Audio Extractor
+# Panopto Video Downloader
 
-Two-part system that lets students extract MP3 audio from Panopto lecture videos by mimicking the platform's own web player workflow.
+Browser extension that lets you download Panopto videos to your backend storage. The extension works on Panopto Viewer, Embed, and List pages, extracting video stream URLs and sending them to your configured backend API.
 
 ## Repository Layout
 
-| Path | Description |
-| --- | --- |
-| `extension/` | Manifest V3 browser extension that runs inside Panopto viewer pages, pulls DeliveryInfo metadata, and forwards usable stream URLs to the backend. |
-| `backend/` | Node.js/Express server that receives stream URLs, downloads the source video (via direct HTTP or `yt-dlp`), and extracts MP3 audio with FFmpeg. |
+```
+panopto-downloader-extension/
+├── manifest.json           # Extension configuration (Manifest V3)
+├── content.js              # Content script injected into Panopto pages
+├── background.js           # Background service worker
+├── popup.html              # Extension popup UI
+├── popup.js                # Popup logic
+├── options.html            # Settings page
+├── options.js              # Settings logic
+├── styles.css              # Shared styles
+├── icons/                  # Extension icons
+│   ├── icon16.png          # 16x16 icon
+│   ├── icon48.png          # 48x48 icon
+│   ├── icon128.png         # 128x128 icon
+│   └── icon.svg            # Vector icon (optional)
+└── README.md
+```
 
 ## How It Works
 
-1. The extension injects a small script into Panopto's viewer pages that adds a **Download Audio (MP3)** button.
-2. When clicked, it calls `POST /Panopto/Pages/Viewer/DeliveryInfo.aspx` from the page context so session cookies are reused automatically.
-3. A usable stream URL is selected from the `PodcastStreams`/`Streams` arrays in the response.
-4. The extension sends that stream URL plus lightweight metadata to the backend.
-5. The backend downloads the source stream (direct HTTP for MP4, or `yt-dlp` for HLS/`panobf` links), extracts audio with FFmpeg, and exposes a download endpoint for the resulting MP3.
+1. The extension injects `content.js` into Panopto pages (Viewer, Embed, and List pages).
+2. Download buttons are automatically added to the page UI based on the page type.
+3. When clicked, the extension calls `POST /Panopto/Pages/Viewer/DeliveryInfo.aspx` from the page context (reusing session cookies automatically).
+4. A usable stream URL is extracted from the `PodcastStreams`/`Streams` arrays in the response.
+5. The extension sends the stream URL plus metadata (video ID, title, source URL) to your backend at `/api/videos/download`.
+6. Your backend receives the request and can download/process the video as needed.
 
-## Extension
+## Features
 
-- Manifest v3 with a single content script for `*://*/Panopto/Pages/Viewer/*` URLs.
-- Content script injects `src/injected.js` into the live page so requests appear same-origin to Panopto.
-- `src/injected.js` handles UI, DeliveryInfo POSTs, stream selection, and messaging.
-- Background service worker reads the configured backend base URL (stored via `chrome.storage.sync`) and relays stream payloads to `/api/extract`.
-- `extension/src/options.html` lets users change the backend base URL (defaults to `http://localhost:4000`).
-- Web accessible resource is limited to the injected script to satisfy MV3 CSP requirements.
+- ✅ Works on Viewer, Embed, and List pages
+- ✅ Single video downloads from viewer/embed pages
+- ✅ Batch downloads from list pages (download all videos at once)
+- ✅ Configurable backend URL via settings page
+- ✅ Optional API key authentication
+- ✅ Browser notifications for success/error states
+- ✅ Popup for quick backend status check
+- ✅ Settings page for configuration
 
-### Running the Extension
+## Installation & Setup
 
-1. Build/zip is not required—load `extension/` as an **Unpacked** extension in Chrome/Edge (Developer Mode).
-2. Visit any Panopto viewer page (`.../Panopto/Pages/Viewer.aspx?id=...`).
-3. Use the floating **Download Audio (MP3)** button; the status bubble reports DeliveryInfo fetch errors or backend responses.
+### 1. Add Extension Icons
 
-## Backend
+Before loading the extension, you need to add icon files to the `icons/` directory:
+- `icon16.png` (16x16 pixels)
+- `icon48.png` (48x48 pixels)
+- `icon128.png` (128x128 pixels)
 
-- Node 18+, Express, CORS, and Morgan for logging (`backend/package.json`).
-- Stores transient job metadata in memory (`jobs` map) with `/api/jobs/:id` status lookups.
-- `/api/extract` validates input, queues an async processor, and returns URLs for polling and downloads.
-- Download strategy:
-  - **Direct HTTP** for MP4-like URLs → saves to `backend/tmp/`, then runs `ffmpeg -i input -vn -acodec libmp3lame ...` → saves MP3 to `backend/output/`.
-  - **`yt-dlp`** for `.m3u8` or `.panobf` URLs → `yt-dlp -x --audio-format mp3 ...` handles fragmented/encrypted cases.
-- Files served via `GET /api/jobs/:id/download` (plus a static file server on `/`).
-- Requires `yt-dlp` and `ffmpeg` binaries available on `PATH` for full coverage; the server checks and throws descriptive errors if missing.
+You can create these using any image editor or icon generator.
 
-### Local Setup
+### 2. Load the Extension
 
-```bash
-cd backend
-npm install          # requires internet access
-npm run dev          # starts on http://localhost:4000
+1. Open Chrome/Edge and navigate to `chrome://extensions/`
+2. Enable "Developer mode" (toggle in top-right corner)
+3. Click "Load unpacked"
+4. Select this extension directory
+
+### 3. Configure Backend
+
+On first install, the extension will automatically open the options page. Otherwise:
+- Click the extension icon → "Open Settings"
+- Or right-click the extension icon → "Options"
+
+Configure:
+- **Backend URL** (required): Your backend API endpoint (e.g., `https://api.example.com`)
+- **API Key** (optional): If your backend requires Bearer token authentication
+
+### 4. Test the Extension
+
+1. Visit any Panopto video page:
+   - Viewer: `https://*.panopto.com/Panopto/Pages/Viewer.aspx?id=...`
+   - Embed: `https://*.panopto.com/Panopto/Pages/Embed.aspx?id=...`
+   - List: `https://*.panopto.com/Panopto/Pages/Sessions/List.aspx`
+
+2. You should see download buttons:
+   - **Viewer/Embed pages**: Download button in the video controls
+   - **List pages**: "Download All" button in the action header
+
+3. Click the download button to test the flow
+
+## Backend API Requirements
+
+Your backend should implement the following endpoint:
+
+### `POST /api/videos/download`
+
+**Request Body:**
+```json
+{
+  "stream_url": "https://...",
+  "video_id": "abc123",
+  "title": "Video Title",
+  "source_url": "https://panopto.com/..."
+}
 ```
 
-Environment variables:
+**Headers:**
+- `Content-Type: application/json`
+- `Authorization: Bearer <api_key>` (if API key is configured)
 
-- `PORT` – overrides the default `4000` port.
+**Response:**
+- `200 OK` - Success (any JSON response)
+- `4xx/5xx` - Error (JSON with `detail` field for error message)
+
+### Optional: `GET /api/health`
+
+The extension popup can check backend connectivity using this endpoint:
+- `200 OK` - Backend is online
+- Any other status - Backend error
+
+## Extension Architecture
+
+### Content Script (`content.js`)
+- Runs on Panopto pages (Viewer, Embed, List)
+- Detects page type and adds appropriate download buttons
+- Handles DeliveryInfo API requests
+- Extracts stream URLs from Panopto responses
+- Sends download requests to backend
+
+### Background Service Worker (`background.js`)
+- Handles extension lifecycle events
+- Opens options page on first install
+- Creates browser notifications from content script messages
+
+### Popup (`popup.html` + `popup.js`)
+- Quick status check for backend connectivity
+- Displays current backend configuration
+- Provides quick access to settings
+
+### Options Page (`options.html` + `options.js`)
+- Settings UI for backend URL and API key
+- Validates and saves configuration
+- Tests backend connectivity after saving
 
 ## Key Assumptions & Safeguards
 
-- DeliveryInfo endpoint (`/Panopto/Pages/Viewer/DeliveryInfo.aspx`) stays stable enough for POST payloads described in `src/injected.js`.
-- Requests originate from the Panopto page context to reuse session cookies; the extension never handles credentials directly.
-- Stream URLs may expire quickly, so backend jobs start immediately after the `POST /api/extract` call.
-- Users must already have permission to view the lecture; backend simply mirrors access they already possess.
-- `yt-dlp` + FFmpeg cover HLS (`.m3u8`) and encrypted (`.panobf`) cases; direct HTTP fallback handles simpler MP4 URLs to reduce dependency load.
+- DeliveryInfo endpoint (`/Panopto/Pages/Viewer/DeliveryInfo.aspx`) is stable for POST requests
+- Requests originate from the Panopto page context to reuse session cookies automatically
+- The extension never handles credentials directly; it relies on existing Panopto session cookies
+- Users must already have permission to view the lecture; the extension only mirrors access they already possess
+- Stream URLs may expire quickly, so backend should process them immediately
+
+## Permissions
+
+The extension requires:
+- `storage` - To save backend URL and API key settings
+- `activeTab` - To interact with Panopto pages
+- `scripting` - To inject content scripts
+- `notifications` - To show download status notifications
+- `host_permissions` - Access to `*.panopto.com` and `*.panopto.eu` domains
+
+## Development
+
+### Testing Changes
+
+1. Make your code changes
+2. Go to `chrome://extensions/`
+3. Click the refresh icon on the extension card
+4. Reload the Panopto page to test
+
+### Debugging
+
+- **Content Script**: Use browser DevTools on the Panopto page (Console tab)
+- **Background Script**: Go to `chrome://extensions/` → Click "service worker" link under the extension
+- **Popup**: Right-click the extension icon → "Inspect popup"
+- **Options Page**: Right-click the options page → "Inspect"
+
+## Distribution
+
+### Chrome Web Store
+1. Create a ZIP file of the extension directory
+2. Go to [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)
+3. Upload the ZIP and follow the submission process
+
+### Firefox Add-ons
+1. Update `manifest.json` for Firefox compatibility if needed
+2. Submit to [Firefox Add-ons](https://addons.mozilla.org/)
+
+### Direct Distribution
+- Package as `.crx` file (Chrome) or `.xpi` file (Firefox)
+- Distribute directly to users (they'll need to enable Developer Mode to install)
 
 ## Next Steps
 
-- Persist job metadata in a lightweight DB or KV store for multi-instance deployments.
-- Add auth/rate-limiting on the backend to prevent abuse if exposed publicly.
-- Provide richer UI feedback inside the extension (progress polling, error codes, etc.).
-- Write automated tests (unit + integration) for DeliveryInfo parsing logic and backend job processor once dependencies are available.
+- Add progress tracking for batch downloads
+- Implement retry logic for failed downloads
+- Add download history/logging
+- Support for additional Panopto domains
+- Enhanced error messages and user feedback
+- Optional: Add UI for viewing download queue/status

@@ -1,0 +1,8 @@
+/* Styles for injected download buttons */
+#panopto-dl-viewer-btn:hover,
+#panopto-dl-embed-btn:hover,
+#panopto-dl-list-btn:hover {
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
