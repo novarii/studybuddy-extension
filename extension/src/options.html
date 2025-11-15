@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Panopto Audio Extractor – Options</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 2rem;
+        max-width: 480px;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 0.5rem;
+        font-size: 1rem;
+      }
+      button {
+        margin-top: 1rem;
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+      }
+      .status {
+        margin-top: 0.5rem;
+        min-height: 1.25rem;
+        color: #0a7d2a;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Backend Settings</h1>
+    <p>Set the base URL of your Panopto Audio Extractor backend server.</p>
+    <form id="options-form">
+      <label for="backend-url">Backend Base URL</label>
+      <input
+        type="text"
+        id="backend-url"
+        name="backendUrl"
+        placeholder="http://localhost:4000"
+        required
+      />
+      <button type="submit">Save</button>
+      <div class="status" id="status"></div>
+    </form>
+    <script src="options.js"></script>
+  </body>
+</html>

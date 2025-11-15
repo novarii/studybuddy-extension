@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Panopto Audio Extractor",
+  "description": "Download audio-only MP3 files from Panopto lectures via an internal DeliveryInfo endpoint.",
+  "version": "0.1.0",
+  "permissions": ["storage"],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["*://*/Panopto/Pages/Viewer/*"],
+      "js": ["src/content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "options_page": "src/options.html",
+  "action": {
+    "default_title": "Panopto Audio Extractor"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["src/injected.js"],
+      "matches": ["*://*/Panopto/Pages/Viewer/*"]
+    }
+  ]
+}
