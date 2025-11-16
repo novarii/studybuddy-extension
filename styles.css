@@ -1,3 +1,44 @@
+/* Color Palette */
+:root {
+  /* Light Mode (default) */
+  --background: #f5f1e8;
+  --panel: #faf8f3;
+  --card: #ffffff;
+  --border: #e8dcc8;
+  --primary-text: #5a4a3a;
+  --secondary-text: #8b7355;
+  --accent: #a67c52;
+  --accent-hover: #8b6a47;
+  --hover: #f0e6d2;
+  --selected: #a67c52;
+  --button-icon: #faf8f3;
+}
+
+[data-theme="dark"] {
+  /* Dark Mode */
+  --background: #1a1f2e;
+  --panel: #242938;
+  --card: #2d3748;
+  --border: #3d4556;
+  --primary-text: #e8eaed;
+  --secondary-text: #9ca3af;
+  --accent: #7dd3fc;
+  --accent-hover: #38bdf8;
+  --hover: #3d4556;
+  --selected: #7dd3fc;
+  --button-icon: #1a1f2e;
+}
+
+/* Font: Saprona (if you have the font files, add @font-face here) */
+/* For now using a similar modern sans-serif as fallback */
+@font-face {
+  font-family: 'Saprona';
+  src: local('Saprona'), local('Saprona-Regular');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Styles for injected download buttons */
 #panopto-dl-viewer-btn:hover,
 #panopto-dl-embed-btn:hover,
@@ -5,4 +46,3 @@
   opacity: 0.8;
   transition: opacity 0.2s;
 }
-

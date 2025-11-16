@@ -2,106 +2,174 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <link rel="stylesheet" href="styles.css">
   <style>
+    * {
+      box-sizing: border-box;
+    }
+    html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--background);
+    }
     body {
       width: 300px;
-      padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      margin: 0;
+      min-height: 100vh;
+      padding: 4px;
+      font-family: 'Saprona', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0px;
+      background: var(--background);
+    }
+    .content-wrapper {
+      width: 100%;
+      min-height: calc(100vh - 8px);
+      padding: 25px;
+      background: var(--background);
+      color: var(--primary-text);
+      border-radius: 18px;
+      transition: background-color 0.3s, color 0.3s;
     }
     h3 {
       margin-top: 0;
-      color: #333;
+      color: var(--primary-text);
+      font-weight: 600;
     }
     .status {
       padding: 8px;
-      border-radius: 4px;
+      border-radius: 12px;
       margin: 8px 0;
       font-size: 13px;
+      border: 1px solid var(--border);
     }
     .status.success {
-      background: #d4edda;
-      color: #155724;
+      background: var(--card);
+      color: var(--accent);
+      border-color: var(--accent);
     }
     .status.error {
-      background: #f8d7da;
-      color: #721c24;
+      background: var(--card);
+      color: var(--accent);
+      border-color: var(--accent);
     }
     .status.info {
-      background: #d1ecf1;
-      color: #0c5460;
+      background: var(--panel);
+      color: var(--secondary-text);
+      border-color: var(--border);
     }
     button {
       width: 100%;
       padding: 12px;
       margin: 8px 0;
-      background: #007bff;
-      color: white;
+      background: var(--accent);
+      color: var(--button-icon);
       border: none;
-      border-radius: 4px;
+      border-radius: 12px;
       cursor: pointer;
       font-size: 14px;
       font-weight: 500;
+      font-family: 'Saprona', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      transition: background-color 0.2s;
     }
-    button:hover {
-      background: #0056b3;
+    button:hover:not(:disabled) {
+      background: var(--accent-hover);
     }
     button:disabled {
-      background: #6c757d;
+      background: var(--border);
       cursor: not-allowed;
       opacity: 0.6;
     }
     .page-info {
       font-size: 12px;
-      color: #666;
+      color: var(--secondary-text);
       margin: 8px 0;
       padding: 8px;
-      background: #f8f9fa;
-      border-radius: 4px;
+      background: var(--panel);
+      border-radius: 12px;
+      border: 1px solid var(--border);
     }
     .page-info.error {
-      background: #f8d7da;
-      color: #721c24;
+      background: var(--card);
+      color: var(--accent);
+      border-color: var(--accent);
     }
     select {
       width: 100%;
       padding: 10px;
       margin: 8px 0;
-      border: 1px solid #ddd;
-      border-radius: 4px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
       font-size: 14px;
-      background: white;
+      background: var(--card);
+      color: var(--primary-text);
       cursor: pointer;
+      font-family: 'Saprona', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    select:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--hover);
+    }
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(166, 124, 82, 0.2);
+    }
+    [data-theme="dark"] select:focus {
+      box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.2);
     }
     select:disabled {
-      background: #f5f5f5;
+      background: var(--panel);
       cursor: not-allowed;
+      opacity: 0.6;
     }
     label {
       display: block;
       font-size: 13px;
       font-weight: 500;
-      color: #333;
+      color: var(--primary-text);
       margin-top: 8px;
       margin-bottom: 4px;
     }
   </style>
 </head>
 <body>
-  <h3>Study Buddy</h3>
-  
-  <div id="page-info" class="page-info"></div>
+  <div class="content-wrapper">
+    <h3>Study Buddy</h3>
+    
+    <div id="page-info" class="page-info"></div>
 
-  <label for="course-select">Send to Course:</label>
-  <select id="course-select" disabled>
-    <option value="">Loading courses...</option>
-  </select>
-  
-  <div id="status" class="status info" style="display: none;"></div>
-  
-  <button id="send-button" disabled>Send to Study Buddy</button>
+    <label for="course-select">Send to Course:</label>
+    <select id="course-select" disabled>
+      <option value="">Loading courses...</option>
+    </select>
+    
+    <div id="status" class="status info" style="display: none;"></div>
+    
+    <button id="send-button" disabled>Send to Study Buddy</button>
+  </div>
   
   <script src="popup.js"></script>
+  <script>
+    // Default to light mode, but allow system preference to override
+    (function() {
+      // Default to light mode
+      document.documentElement.setAttribute('data-theme', 'light');
+      
+      // Optionally respect system preference (uncomment to enable)
+      // const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      // if (mediaQuery.matches) {
+      //   document.documentElement.setAttribute('data-theme', 'dark');
+      // }
+      // 
+      // if (mediaQuery.addEventListener) {
+      //   mediaQuery.addEventListener('change', (e) => {
+      //     document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      //   });
+      // }
+    })();
+  </script>
 </body>
 </html>
 

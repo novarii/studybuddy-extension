@@ -3,15 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <title>Panopto Downloader Settings</title>
+  <link rel="stylesheet" href="styles.css">
   <style>
+    * {
+      box-sizing: border-box;
+    }
+    html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--background);
+    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Saprona', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 4px;
+      background: var(--background);
+      min-height: 100vh;
+    }
+    .content-wrapper {
       max-width: 600px;
-      margin: 40px auto;
-      padding: 20px;
+      margin: 0 auto;
+      padding: 25px;
+      background: var(--background);
+      color: var(--primary-text);
+      border-radius: 18px;
+      transition: background-color 0.3s, color 0.3s;
+      min-height: calc(100vh - 8px);
     }
     h1 {
-      color: #333;
+      color: var(--primary-text);
+      font-weight: 600;
     }
     .form-group {
       margin-bottom: 20px;
@@ -20,93 +43,129 @@
       display: block;
       margin-bottom: 8px;
       font-weight: 500;
-      color: #555;
+      color: var(--primary-text);
     }
     input[type="url"],
     input[type="text"],
     input[type="password"] {
       width: 100%;
       padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
       font-size: 14px;
       box-sizing: border-box;
+      background: var(--card);
+      color: var(--primary-text);
+      font-family: 'Saprona', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    input:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--hover);
     }
     input:focus {
       outline: none;
-      border-color: #007bff;
-      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(166, 124, 82, 0.2);
+    }
+    [data-theme="dark"] input:focus {
+      box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.2);
     }
     button {
-      background: #007bff;
-      color: white;
+      background: var(--accent);
+      color: var(--button-icon);
       padding: 10px 20px;
       border: none;
-      border-radius: 4px;
+      border-radius: 12px;
       cursor: pointer;
       font-size: 14px;
+      font-weight: 500;
+      font-family: 'Saprona', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      transition: background-color 0.2s;
     }
     button:hover {
-      background: #0056b3;
+      background: var(--accent-hover);
     }
     .status {
       padding: 12px;
-      border-radius: 4px;
+      border-radius: 12px;
       margin: 16px 0;
       display: none;
+      border: 1px solid var(--border);
     }
     .status.success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
+      background: var(--card);
+      color: var(--accent);
+      border-color: var(--accent);
     }
     .status.error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
+      background: var(--card);
+      color: var(--accent);
+      border-color: var(--accent);
     }
     .help-text {
       font-size: 12px;
-      color: #666;
+      color: var(--secondary-text);
       margin-top: 4px;
     }
   </style>
 </head>
 <body>
-  <h1>Panopto Video Downloader Settings</h1>
-  
-  <div id="status" class="status"></div>
-  
-  <form id="settings-form">
-    <div class="form-group">
-      <label for="backendUrl">
-        Backend URL *
-        <span class="help-text">Your backend API endpoint (e.g., https://api.example.com)</span>
-      </label>
-      <input 
-        type="url" 
-        id="backendUrl" 
-        placeholder="https://your-backend.com"
-        required
-      >
-    </div>
+  <div class="content-wrapper">
+    <h1>Panopto Video Downloader Settings</h1>
     
-    <div class="form-group">
-      <label for="apiKey">
-        API Key (Optional)
-        <span class="help-text">If your backend requires authentication</span>
-      </label>
-      <input 
-        type="password" 
-        id="apiKey" 
-        placeholder="Your API key"
-      >
-    </div>
+    <div id="status" class="status"></div>
     
-    <button type="submit">Save Settings</button>
-  </form>
+    <form id="settings-form">
+      <div class="form-group">
+        <label for="backendUrl">
+          Backend URL *
+          <span class="help-text">Your backend API endpoint (e.g., https://api.example.com)</span>
+        </label>
+        <input 
+          type="url" 
+          id="backendUrl" 
+          placeholder="https://your-backend.com"
+          required
+        >
+      </div>
+      
+      <div class="form-group">
+        <label for="apiKey">
+          API Key (Optional)
+          <span class="help-text">If your backend requires authentication</span>
+        </label>
+        <input 
+          type="password" 
+          id="apiKey" 
+          placeholder="Your API key"
+        >
+      </div>
+      
+      <button type="submit">Save Settings</button>
+    </form>
+  </div>
   
   <script src="options.js"></script>
+  <script>
+    // Default to light mode, but allow system preference to override
+    (function() {
+      // Default to light mode
+      document.documentElement.setAttribute('data-theme', 'light');
+      
+      // Optionally respect system preference (uncomment to enable)
+      // const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      // if (mediaQuery.matches) {
+      //   document.documentElement.setAttribute('data-theme', 'dark');
+      // }
+      // 
+      // if (mediaQuery.addEventListener) {
+      //   mediaQuery.addEventListener('change', (e) => {
+      //     document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      //   });
+      // }
+    })();
+  </script>
 </body>
 </html>
 
