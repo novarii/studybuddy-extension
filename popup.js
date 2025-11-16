@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statusDiv = document.getElementById('status');
   const pageInfoDiv = document.getElementById('page-info');
   const sendButton = document.getElementById('send-button');
+  const courseSelect = document.getElementById('course-select');
 
   // Get current tab
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -45,15 +46,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+   // Load courses from backend to populate dropdown
+  try {
+    await loadCourses();
+  } catch (error) {
+    console.error('Error loading courses:', error);
+    courseSelect.innerHTML = '<option value="">Error loading courses</option>';
+    showStatus('Error loading courses: ' + error.message, 'error');
+  }
+
   // Handle send button click
   sendButton.addEventListener('click', async () => {
+    const selectedOption = courseSelect.options[courseSelect.selectedIndex];
+    const courseId = courseSelect.value;
+    const courseName = selectedOption ? selectedOption.textContent : '';
+
+    if (!courseId) {
+      showStatus('Please select a course', 'error');
+      return;
+    }
+
     sendButton.disabled = true;
     showStatus('Getting video link...', 'info');
 
     try {
       // Send message to content script
       const response = await chrome.tabs.sendMessage(tab.id, {
-        action: 'downloadVideo'
+        action: 'downloadVideo',
+        courseId,
+        courseName
       });
 
       if (response.success) {
@@ -70,6 +91,63 @@ document.addEventListener('DOMContentLoaded', async () => {
       }, 2000);
     }
   });
+
+  async function loadCourses() {
+    const { backendUrl } = await chrome.storage.sync.get(['backendUrl']);
+    const resolvedBackendUrl = backendUrl || 'http://localhost:8000';
+
+    if (!resolvedBackendUrl) {
+      courseSelect.innerHTML = '<option value="">Backend URL not configured</option>';
+      courseSelect.disabled = true;
+      sendButton.disabled = true;
+      return;
+    }
+
+    const response = await fetch(`${resolvedBackendUrl}/api/courses`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch courses (HTTP ${response.status})`);
+    }
+
+    const data = await response.json();
+    const courses = Array.isArray(data) ? data : (data.courses || []);
+
+    courseSelect.innerHTML = '';
+
+    if (!Array.isArray(courses) || courses.length === 0) {
+      const emptyOption = document.createElement('option');
+      emptyOption.value = '';
+      emptyOption.textContent = 'No courses found. Add your first course in Study Buddy.';
+      courseSelect.appendChild(emptyOption);
+
+      courseSelect.disabled = true;
+      sendButton.disabled = true;
+      showStatus('No courses found. Add your first course in Study Buddy.', 'info');
+      return;
+    }
+
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = '-- Select a course --';
+    courseSelect.appendChild(defaultOption);
+
+    courses.forEach((course) => {
+      const option = document.createElement('option');
+      option.value = String(course.id ?? course.course_id ?? '');
+      const code = course.code || course.course_code || '';
+      const name = course.name || course.course_name || '';
+      option.textContent = code && name ? `${code} - ${name}` : (name || code || 'Untitled course');
+      courseSelect.appendChild(option);
+    });
+
+    courseSelect.disabled = false;
+    sendButton.disabled = false;
+  }
 
   function showStatus(message, type) {
     statusDiv.textContent = message;

@@ -12,7 +12,7 @@
   }
 
   // Handle single video download
-  async function handleSingleDownload() {
+  async function handleSingleDownload(courseId, courseName) {
     const url = new URL(window.location.href);
     const videoId = url.searchParams.get('id') ?? url.searchParams.get('tid');
     const isTid = url.searchParams.has('tid');
@@ -21,12 +21,24 @@
       return { success: false, error: 'Failed to get Lesson ID.' };
     }
 
+    if (!courseId || !courseName) {
+      return { success: false, error: 'Course selection is required.' };
+    }
+
     try {
       const streams = await requestDeliveryInfo(videoId, isTid);
       const streamUrl = streams[0];
       const backendUrl = await getBackendUrl();
 
-      const result = await sendToBackend(streamUrl, videoId, document.title, window.location.href, backendUrl);
+      const result = await sendToBackend(
+        streamUrl,
+        videoId,
+        document.title,
+        window.location.href,
+        backendUrl,
+        courseId,
+        courseName
+      );
       return { success: true, message: 'Video sent to Study Buddy! Download started.' };
     } catch (error) {
       console.error('Download error:', error);
@@ -72,7 +84,7 @@
   }
 
   // Send video to backend
-  async function sendToBackend(streamUrl, videoId, title, sourceUrl, backendUrl) {
+  async function sendToBackend(streamUrl, videoId, title, sourceUrl, backendUrl, courseId, courseName) {
     const response = await fetch(`${backendUrl}/api/videos/download`, {
       method: 'POST',
       headers: {
@@ -82,7 +94,9 @@
         stream_url: streamUrl,
         video_id: videoId,
         title: title || document.title,
-        source_url: sourceUrl || window.location.href
+        source_url: sourceUrl || window.location.href,
+        course_id: courseId,
+        course_name: courseName
       })
     });
 
@@ -97,7 +111,7 @@
   // Handle messages from popup
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'downloadVideo') {
-      handleSingleDownload().then(result => {
+      handleSingleDownload(request.courseId, request.courseName).then(result => {
         sendResponse(result);
       }).catch(error => {
         sendResponse({ success: false, error: error.message });
