@@ -96,7 +96,8 @@
         title: title || document.title,
         source_url: sourceUrl || window.location.href,
         course_id: courseId,
-        course_name: courseName
+        course_name: courseName,
+        audio_only: true
       })
     });
 
@@ -120,4 +121,3 @@
     }
   });
 })();
-
